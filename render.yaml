@@ -1,11 +1,9 @@
 services:
-  - type: static
+  - type: static_site
     name: jack-ecommerce
-    env: node
     branch: main
     buildCommand: npm install && npm run build
     publishPath: dist
-    staticPublishPath: dist
     redirects:
       - source: /*
         destination: /index.html
