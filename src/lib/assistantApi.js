@@ -1,4 +1,7 @@
-const DEFAULT_ENDPOINT = import.meta.env.VITE_AI_ASSISTANT_API_URL || '/api/assistant';
+const DEFAULT_ENDPOINT = import.meta.env.VITE_AI_ASSISTANT_API_URL
+    || (import.meta.env.DEV ? '/api/assistant' : '');
+
+const hasEndpoint = Boolean(DEFAULT_ENDPOINT);
 
 const toPrice = (value) => Number(value || 0);
 
@@ -45,6 +48,10 @@ export const requestAssistantReply = async ({
     profile,
     currentPath
 }) => {
+    if (!hasEndpoint) {
+        throw new Error('Assistant endpoint is not configured for production.');
+    }
+
     const response = await fetch(DEFAULT_ENDPOINT, {
         method: 'POST',
         headers: {

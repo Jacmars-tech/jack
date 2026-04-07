@@ -1,4 +1,9 @@
-const PAYMENTS_API_BASE_URL = (import.meta.env.VITE_PAYMENTS_API_BASE_URL || '').trim().replace(/\/$/, '');
+const rawBase = (import.meta.env.VITE_PAYMENTS_API_BASE_URL || '').trim();
+const normalizedBase = rawBase.replace(/\/$/, '');
+const looksValid = normalizedBase.startsWith('http');
+const isPlaceholder = normalizedBase.includes('your-payments-api');
+
+const PAYMENTS_API_BASE_URL = looksValid && !isPlaceholder ? normalizedBase : '';
 
 export const hasPaymentsBackend = Boolean(PAYMENTS_API_BASE_URL);
 
@@ -46,4 +51,3 @@ export async function checkMpesaPaymentStatus(checkoutRequestId) {
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-

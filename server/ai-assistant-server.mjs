@@ -2,9 +2,8 @@ import http from 'node:http';
 import process from 'node:process';
 
 const PORT = Number(process.env.AI_ASSISTANT_PORT || 8787);
-const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim();
-const OPENAI_MODEL = String(process.env.OPENAI_MODEL || 'gpt-5.4').trim();
-const OPENAI_REASONING_EFFORT = String(process.env.OPENAI_REASONING_EFFORT || 'medium').trim();
+const HF_API_KEY = String(process.env.HUGGINGFACE_API_KEY || '').trim();
+const HF_MODEL = String(process.env.HUGGINGFACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3').trim();
 
 const sendJson = (response, statusCode, payload) => {
     response.writeHead(statusCode, {
@@ -117,31 +116,29 @@ const extractOutputText = (payload) => {
     return textParts.join('\n\n').trim();
 };
 
-const callOpenAI = async ({ message, previousResponseId, context }) => {
-    if (!OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY is not configured. Start the AI server with a valid OpenAI API key.');
+const callHuggingFace = async ({ message, context }) => {
+    if (!HF_API_KEY) {
+        throw new Error('HUGGINGFACE_API_KEY is not configured. Set it before starting the AI server.');
     }
+
+    const prompt = `${buildAssistantInstructions(context)}\n\nUser: ${String(message || '').trim()}\nAssistant:`;
 
     const requestBody = {
-        model: OPENAI_MODEL,
-        reasoning: {
-            effort: OPENAI_REASONING_EFFORT
-        },
-        store: true,
-        instructions: buildAssistantInstructions(context),
-        input: String(message || '').trim(),
-        max_output_tokens: 500
+        inputs: prompt,
+        parameters: {
+            max_new_tokens: 500,
+            temperature: 0.6,
+            top_p: 0.95,
+            repetition_penalty: 1.05,
+            return_full_text: false
+        }
     };
 
-    if (previousResponseId) {
-        requestBody.previous_response_id = previousResponseId;
-    }
-
-    const response = await fetch('https://api.openai.com/v1/responses', {
+    const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${OPENAI_API_KEY}`
+            Authorization: `Bearer ${HF_API_KEY}`
         },
         body: JSON.stringify(requestBody)
     });
@@ -149,19 +146,22 @@ const callOpenAI = async ({ message, previousResponseId, context }) => {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        const errorMessage = payload?.error?.message || 'OpenAI request failed.';
+        const errorMessage = payload?.error || 'Hugging Face request failed.';
         throw new Error(errorMessage);
     }
 
-    const reply = extractOutputText(payload);
-    if (!reply) {
-        throw new Error('The AI response did not include readable text output.');
+    const text =
+        (Array.isArray(payload) && payload[0]?.generated_text) ? payload[0].generated_text.trim() :
+            (typeof payload?.generated_text === 'string' ? payload.generated_text.trim() : '');
+
+    if (!text) {
+        throw new Error('The Hugging Face response did not include readable text output.');
     }
 
     return {
-        reply,
-        responseId: payload.id || '',
-        model: payload.model || OPENAI_MODEL
+        reply: text,
+        responseId: '', // HF inference API does not return an id
+        model: HF_MODEL
     };
 };
 
@@ -176,8 +176,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/assistant/health') {
         sendJson(response, 200, {
             ok: true,
-            configured: Boolean(OPENAI_API_KEY),
-            model: OPENAI_MODEL
+            configured: Boolean(HF_API_KEY),
+            model: HF_MODEL
         });
         return;
     }
@@ -192,11 +192,7 @@ const server = http.createServer(async (request, response) => {
                 return;
             }
 
-            const result = await callOpenAI({
-                message,
-                previousResponseId: String(body.previousResponseId || '').trim(),
-                context: body.context || {}
-            });
+            const result = await callHuggingFace({ message, context: body.context || {} });
 
             sendJson(response, 200, result);
         } catch (error) {
@@ -213,6 +209,6 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, () => {
     console.log(`Zack Ecommerce AI server listening on http://localhost:${PORT}`);
-    console.log(`OpenAI model: ${OPENAI_MODEL}`);
-    console.log(`OpenAI configured: ${OPENAI_API_KEY ? 'yes' : 'no'}`);
+    console.log(`HF model: ${HF_MODEL}`);
+    console.log(`HF configured: ${HF_API_KEY ? 'yes' : 'no'}`);
 });
