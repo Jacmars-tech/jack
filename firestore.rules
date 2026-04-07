@@ -1,0 +1,316 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/user_profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.status == 'active' &&
+        get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.accessRole == 'admin';
+    }
+
+    function hasActiveProfile() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/user_profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function validRequiredString(value, maxSize) {
+      return value is string && value.size() > 0 && value.size() <= maxSize;
+    }
+
+    function validOptionalString(value, maxSize) {
+      return value is string && value.size() <= maxSize;
+    }
+
+    function validOrderStatus(status) {
+      return status in ['pending', 'paid', 'processing', 'delivered', 'cancelled'];
+    }
+
+    function validUserStatus(status) {
+      return status in ['active', 'suspended'];
+    }
+
+    function validAccountType(accountType) {
+      return accountType in ['institution', 'parent_student'];
+    }
+
+    function validRole(role) {
+      return role in ['institution', 'parent', 'student', 'customer'];
+    }
+
+    function validAccessRole(accessRole) {
+      return accessRole in ['customer', 'admin'];
+    }
+
+    function accountRoleMatches(accountType, role) {
+      return (accountType == 'institution' && role == 'institution') ||
+        (accountType == 'parent_student' && role in ['parent', 'student', 'customer']);
+    }
+
+    function validProductData(data) {
+      return data.keys().hasOnly([
+          'name', 'description', 'category', 'price', 'stock', 'featured',
+          'image', 'image_url', 'images', 'created_at', 'updated_at'
+        ]) &&
+        validRequiredString(data.name, 160) &&
+        validOptionalString(data.description, 5000) &&
+        validRequiredString(data.category, 120) &&
+        data.price is number &&
+        data.price >= 0 &&
+        data.stock is number &&
+        data.stock >= 0 &&
+        data.featured is bool &&
+        validOptionalString(data.image, 2000) &&
+        validOptionalString(data.image_url, 2000) &&
+        data.images is list &&
+        data.images.size() > 0 &&
+        data.images.size() <= 12 &&
+        data.created_at is timestamp &&
+        data.updated_at is timestamp;
+    }
+
+    function stockDecrementAllowed() {
+      return signedIn() &&
+        resource.data.stock is number &&
+        request.resource.data.stock is number &&
+        request.resource.data.stock >= 0 &&
+        request.resource.data.stock <= resource.data.stock &&
+        request.resource.data.updated_at is timestamp &&
+        (
+          request.resource.data.keys().hasOnly(['stock', 'updated_at']) ||
+          (
+            request.resource.data.keys().hasOnly([
+              'name', 'description', 'category', 'price', 'stock', 'featured',
+              'image', 'image_url', 'images', 'created_at', 'updated_at'
+            ]) &&
+            request.resource.data.name == resource.data.name &&
+            request.resource.data.description == resource.data.description &&
+            request.resource.data.category == resource.data.category &&
+            request.resource.data.price == resource.data.price &&
+            request.resource.data.featured == resource.data.featured &&
+            request.resource.data.image == resource.data.image &&
+            request.resource.data.image_url == resource.data.image_url &&
+            request.resource.data.images == resource.data.images &&
+            request.resource.data.created_at == resource.data.created_at
+          )
+        );
+    }
+
+    function userProfileFieldsAllowed(data) {
+      return data.keys().hasOnly([
+        'uid', 'accountType', 'role', 'accessRole', 'displayName', 'fullName', 'institutionName',
+        'officialEmail', 'email', 'phone', 'county', 'poBox', 'schoolCode',
+        'adminNo', 'status', 'email_search', 'officialEmail_search', 'phone_search',
+        'schoolCode_search', 'adminNo_search', 'loginLookupIds', 'created_at', 'updated_at'
+      ]);
+    }
+
+    function validUserProfileCore(data) {
+      return userProfileFieldsAllowed(data) &&
+        data.uid is string &&
+        validAccountType(data.accountType) &&
+        validRole(data.role) &&
+        validAccessRole(data.accessRole) &&
+        accountRoleMatches(data.accountType, data.role) &&
+        validRequiredString(data.displayName, 160) &&
+        validOptionalString(data.fullName, 160) &&
+        validOptionalString(data.institutionName, 200) &&
+        validOptionalString(data.officialEmail, 254) &&
+        validRequiredString(data.email, 254) &&
+        validRequiredString(data.phone, 40) &&
+        validRequiredString(data.county, 80) &&
+        validOptionalString(data.poBox, 80) &&
+        validOptionalString(data.schoolCode, 80) &&
+        validOptionalString(data.adminNo, 80) &&
+        validUserStatus(data.status) &&
+        data.email_search == data.email &&
+        data.officialEmail_search == data.officialEmail &&
+        data.phone_search == data.phone &&
+        data.loginLookupIds is list &&
+        data.loginLookupIds.size() >= 1 &&
+        data.loginLookupIds.size() <= 3 &&
+        data.created_at is timestamp &&
+        data.updated_at is timestamp &&
+        (
+          data.accountType == 'institution'
+            ? validRequiredString(data.institutionName, 200) &&
+              validRequiredString(data.officialEmail, 254) &&
+              data.email == data.officialEmail &&
+              validRequiredString(data.schoolCode, 80)
+            : validRequiredString(data.fullName, 160) &&
+              validRequiredString(data.institutionName, 200)
+        );
+    }
+
+    function validUserProfileCreate(uid) {
+      let data = request.resource.data;
+      return data.uid == uid &&
+        validUserProfileCore(data) &&
+        data.accessRole == 'customer' &&
+        data.status == 'active' &&
+        data.created_at == request.time &&
+        data.updated_at == request.time;
+    }
+
+    function validSelfProfileUpdate(uid) {
+      let data = request.resource.data;
+      return data.uid == uid &&
+        data.uid == resource.data.uid &&
+        validUserProfileCore(data) &&
+        data.accountType == resource.data.accountType &&
+        data.role == resource.data.role &&
+        data.accessRole == resource.data.accessRole &&
+        data.status == resource.data.status &&
+        data.email == resource.data.email &&
+        data.officialEmail == resource.data.officialEmail &&
+        data.created_at == resource.data.created_at &&
+        data.updated_at == request.time;
+    }
+
+    function validAdminProfileUpdate() {
+      let data = request.resource.data;
+      return data.uid == resource.data.uid &&
+        validUserProfileCore(data) &&
+        data.accountType == resource.data.accountType &&
+        data.role == resource.data.role &&
+        data.accessRole == resource.data.accessRole &&
+        data.email == resource.data.email &&
+        data.officialEmail == resource.data.officialEmail &&
+        data.loginLookupIds == resource.data.loginLookupIds &&
+        data.created_at == resource.data.created_at &&
+        data.updated_at == request.time;
+    }
+
+    function validLoginLookupData(data) {
+      return data.keys().hasOnly([
+          'uid', 'type', 'email', 'accountType', 'status', 'created_at', 'updated_at'
+        ]) &&
+        data.uid is string &&
+        data.type in ['phone', 'schoolCode', 'adminNo'] &&
+        validRequiredString(data.email, 254) &&
+        validAccountType(data.accountType) &&
+        validUserStatus(data.status) &&
+        data.created_at == request.time &&
+        data.updated_at == request.time;
+    }
+
+    function lookupMatchesProfile(uid) {
+      return existsAfter(/databases/$(database)/documents/user_profiles/$(uid)) &&
+        getAfter(/databases/$(database)/documents/user_profiles/$(uid)).data.uid == uid &&
+        request.resource.data.email == getAfter(/databases/$(database)/documents/user_profiles/$(uid)).data.email &&
+        request.resource.data.accountType == getAfter(/databases/$(database)/documents/user_profiles/$(uid)).data.accountType &&
+        request.resource.data.status == getAfter(/databases/$(database)/documents/user_profiles/$(uid)).data.status;
+    }
+
+    function validUserOrderCreate() {
+      let data = request.resource.data;
+      return signedIn() &&
+        data.keys().hasOnly([
+          'user_id', 'customer', 'items', 'subtotal', 'delivery_fee',
+          'total', 'status', 'payment', 'created_at', 'updated_at'
+        ]) &&
+        data.user_id == request.auth.uid &&
+        data.customer is map &&
+        data.customer.keys().hasOnly(['name', 'email', 'phone', 'address', 'city']) &&
+        validRequiredString(data.customer.name, 160) &&
+        validRequiredString(data.customer.email, 254) &&
+        validRequiredString(data.customer.phone, 40) &&
+        validRequiredString(data.customer.address, 240) &&
+        validRequiredString(data.customer.city, 120) &&
+        data.items is list &&
+        data.items.size() > 0 &&
+        data.items.size() <= 100 &&
+        data.subtotal is number &&
+        data.subtotal >= 0 &&
+        data.delivery_fee is number &&
+        data.delivery_fee >= 0 &&
+        data.total is number &&
+        data.total == data.subtotal + data.delivery_fee &&
+        data.payment is map &&
+        data.payment.method == 'mpesa' &&
+        data.status in ['pending', 'paid'] &&
+        (data.created_at is timestamp || data.created_at == request.time) &&
+        (data.updated_at is timestamp || data.updated_at == request.time);
+    }
+
+    function validAdminOrderUpdate() {
+      let data = request.resource.data;
+      return data.user_id == resource.data.user_id &&
+        data.customer == resource.data.customer &&
+        data.items == resource.data.items &&
+        data.subtotal == resource.data.subtotal &&
+        data.delivery_fee == resource.data.delivery_fee &&
+        data.total == resource.data.total &&
+        data.payment == resource.data.payment &&
+        data.created_at == resource.data.created_at &&
+        validOrderStatus(data.status) &&
+        data.updated_at == request.time;
+    }
+
+    function validUserMessageCreate() {
+      let data = request.resource.data;
+      return signedIn() &&
+        hasActiveProfile() &&
+        data.keys().hasOnly(['content', 'user_id', 'sender_role', 'created_at']) &&
+        data.user_id == request.auth.uid &&
+        data.sender_role == 'user' &&
+        validRequiredString(data.content, 2000) &&
+        data.created_at == request.time;
+    }
+
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && validProductData(request.resource.data);
+      allow update: if (isAdmin() && validProductData(request.resource.data)) || stockDecrementAllowed();
+      allow delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.user_id == request.auth.uid);
+      allow create: if isAdmin() || (signedIn() && validUserOrderCreate());
+      allow update: if isAdmin() && validAdminOrderUpdate();
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.user_id == request.auth.uid);
+      allow create: if isAdmin() || validUserMessageCreate();
+      allow update, delete: if isAdmin();
+    }
+
+    match /user_profiles/{uid} {
+      allow get: if isSelf(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSelf(uid) && validUserProfileCreate(uid);
+      allow update: if (isSelf(uid) && validSelfProfileUpdate(uid)) || (isAdmin() && validAdminProfileUpdate());
+      allow delete: if isAdmin();
+    }
+
+    match /login_lookup/{lookupId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if validLoginLookupData(request.resource.data) &&
+        lookupMatchesProfile(request.resource.data.uid) &&
+        (isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid));
+      allow update: if validLoginLookupData(request.resource.data) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.type == resource.data.type &&
+        lookupMatchesProfile(request.resource.data.uid) &&
+        (isAdmin() || (signedIn() && resource.data.uid == request.auth.uid));
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
