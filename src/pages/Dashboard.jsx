@@ -6,7 +6,11 @@ import {
     LayoutDashboard,
     Settings,
     ShieldCheck,
-    ShoppingBag,\n    Package,\n    FileText,\n    Bell\n} from 'lucide-react';
+    ShoppingBag,
+    Package,
+    FileText,
+    Bell
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KENYA_COUNTIES } from '../lib/counties';
 import { getUserOrders, updateUserProfile } from '../lib/db';
@@ -506,4 +510,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
