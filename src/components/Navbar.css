@@ -242,10 +242,107 @@
     }
 
     .hide-mobile {
-        display: none;
+        display: inline-flex;
     }
 
     .nav-admin-link span {
-        display: none;
+        display: inline-flex;
     }
 }
+
+
+/* Drawer + hamburger */
+.nav-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(14, 116, 144, 0.06));
+    box-shadow: 0 12px 28px rgba(15, 35, 58, 0.18);
+    color: #0f172a;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.nav-menu-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 32px rgba(15, 35, 58, 0.22);
+}
+
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+    z-index: 900;
+}
+
+.drawer-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 78%;
+    max-width: 320px;
+    height: 100vh;
+    padding: 1.4rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 244, 250, 0.96));
+    box-shadow: 0 24px 48px rgba(15, 35, 58, 0.26);
+    transform: translateX(-105%);
+    transition: transform 0.3s ease;
+    z-index: 950;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.mobile-drawer nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.mobile-drawer a {
+    padding: 0.95rem 1rem;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    background: rgba(14, 116, 144, 0.08);
+    border: 1px solid rgba(14, 116, 144, 0.12);
+    box-shadow: 0 10px 22px rgba(15, 35, 58, 0.12);
+}
+
+.mobile-drawer.open {
+    transform: translateX(0);
+}
+
+@media (max-width: 1024px) {
+    .nav-menu-btn {
+        display: inline-flex;
+    }
+
+    .nav-links {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        gap: 0.35rem;
+    }
+
+    .nav-links .hide-mobile {
+        display: inline-flex;
+    }
+
+    .nav-link {
+        padding: 0.65rem 0.75rem;
+    }
+}
+

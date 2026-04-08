@@ -136,8 +136,8 @@ const buildOrderSummary = (orders) => {
 
 export const getInitialAssistantMessages = ({ user, isAdmin, cartCount }) => {
     const content = user
-        ? `Hello ${user.displayName || user.email || 'there'}! I am jack AI and I can help with products, categories, cart questions, M-Pesa checkout, and your order status.`
-        : 'Hello! I am jack AI. I can help you discover products, compare prices, and explain checkout before you sign in.';
+        ? `Hello ${user.displayName || user.email || 'there'}! I am Zack AI and I can help with products, categories, cart questions, M-Pesa checkout, and your order status.`
+        : 'Hello! I am Zack AI. I can help you discover products, compare prices, and explain checkout before you sign in.';
 
     const suggestions = user
         ? [
@@ -192,7 +192,7 @@ export const buildAssistantReply = ({
             'assistant',
             user
                 ? `Hi ${profile?.displayName || user.displayName || 'there'}! Ask me about products, orders, checkout, delivery, or M-Pesa payment.`
-                : 'Hi there! Ask me for jack product recommendations, pricing, categories, delivery information, or how checkout works.',
+                : 'Hi there! Ask me for Zack product recommendations, pricing, categories, delivery information, or how checkout works.',
             {
                 suggestions: [
                     buildPromptSuggestion('Featured products', 'Show me featured products'),

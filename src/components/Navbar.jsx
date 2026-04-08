@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, User, Search, LogOut, ShieldCheck, Bot, Bell } from 'lucide-react';
+import { ShoppingCart, User, Search, LogOut, ShieldCheck, Bot, Bell, Menu, X } from 'lucide-react';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -15,6 +15,7 @@ const Navbar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const showSearch = location.pathname !== '/';
   const notifyHref = user ? '/dashboard/orders' : '/login';
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     const cartNode = cartLinkRef.current;
@@ -46,11 +47,17 @@ const Navbar = () => {
     window.dispatchEvent(new Event('open-chat'));
   };
 
+  const toggleDrawer = () => setDrawerOpen((prev) => !prev);
+  const closeDrawer = () => setDrawerOpen(false);
+
   return (
     <header className="navbar">
       <div className="container nav-container">
+        <button className="nav-menu-btn" onClick={toggleDrawer} aria-label="Toggle menu">
+          {drawerOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
         <Link to="/" className="nav-logo">
-          <span className="nav-logo-main">jack</span>
+          <span className="nav-logo-main">Zack</span>
         </Link>
 
         {showSearch && (
@@ -105,6 +112,18 @@ const Navbar = () => {
           )}
         </nav>
       </div>
+
+      <div className={`drawer-overlay ${drawerOpen ? 'open' : ''}`} onClick={closeDrawer} />
+      <aside className={`mobile-drawer ${drawerOpen ? 'open' : ''}`}>
+        <nav>
+          <Link to="/" onClick={closeDrawer}>Home</Link>
+          <Link to="/categories" onClick={closeDrawer}>Categories</Link>
+          <Link to="/cart" onClick={closeDrawer}>Cart</Link>
+          <Link to="/dashboard" onClick={closeDrawer}>Dashboard</Link>
+          {isAdmin && <Link to="/admin" onClick={closeDrawer}>Admin</Link>}
+          {!user && <Link to="/login" onClick={closeDrawer}>Login</Link>}
+        </nav>
+      </aside>
     </header>
   );
 };

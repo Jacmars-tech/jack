@@ -52,10 +52,10 @@ const Footer = () => {
       <div className="container footer-shell">
         <div className="footer-hero">
           <div className="footer-hero-copy footer-panel">
-            <span className="footer-eyebrow">jack</span>
+            <span className="footer-eyebrow">Zack</span>
             <h2>Institutional sourcing, cleaner order tracking, and mobile-first buying in one storefront.</h2>
             <p>
-              jack is designed to help institutions, parents, and procurement teams discover products,
+              Zack is designed to help institutions, parents, and procurement teams discover products,
               place orders with clarity, and stay informed from checkout to delivery. The platform is structured to
               keep products visible, payments straightforward, and post-purchase updates easy to follow.
             </p>
@@ -203,7 +203,7 @@ const Footer = () => {
 
         <div className="footer-bottom footer-panel">
           <p>
-            Copyright {year} jack. Built for clearer institutional procurement, smoother checkout, and better
+            Copyright {year} Zack. Built for clearer institutional procurement, smoother checkout, and better
             order visibility across desktop and mobile.
           </p>
           <p>

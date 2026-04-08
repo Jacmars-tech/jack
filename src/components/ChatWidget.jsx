@@ -209,7 +209,7 @@ const ChatWidget = () => {
               <span className="chat-badge">
                 <Sparkles size={14} /> AI Assistant
               </span>
-              <h4>jack AI</h4>
+              <h4>Zack AI</h4>
               <p>OpenAI-powered shopping help for products, cart, M-Pesa checkout, and orders.</p>
             </div>
             <div className="chat-header-actions">

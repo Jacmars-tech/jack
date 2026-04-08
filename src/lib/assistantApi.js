@@ -85,7 +85,7 @@ export const requestAssistantReply = async ({
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new Error(payload.error || 'The jack AI service is unavailable right now.');
+        throw new Error(payload.error || 'The Zack AI service is unavailable right now.');
     }
 
     return {
