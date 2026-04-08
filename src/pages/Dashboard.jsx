@@ -6,8 +6,7 @@ import {
     LayoutDashboard,
     Settings,
     ShieldCheck,
-    ShoppingBag
-} from 'lucide-react';
+    ShoppingBag,\n    Package,\n    FileText,\n    Bell\n} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KENYA_COUNTIES } from '../lib/counties';
 import { getUserOrders, updateUserProfile } from '../lib/db';
@@ -318,6 +317,27 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
+                            <div className="dashboard-action-grid">
+                                <Link to="/categories" className="action-card">
+                                    <div className="action-icon bulk"><Package size={36} /></div>
+                                    <h3>Order Supplies (Bulk)</h3>
+                                    <p>Purchase stock for your institution at bulk rates.</p>
+                                    <span className="action-link">Start ordering <ArrowRight size={14} /></span>
+                                </Link>
+                                <Link to="/categories" className="action-card">
+                                    <div className="action-icon quote"><FileText size={36} /></div>
+                                    <h3>Request Quotation</h3>
+                                    <p>Select products and submit to admin (no payment).</p>
+                                    <span className="action-link">Request quote <ArrowRight size={14} /></span>
+                                </Link>
+                                <Link to="/dashboard/orders" className="action-card">
+                                    <div className="action-icon notify"><Bell size={36} /></div>
+                                    <h3>View Orders</h3>
+                                    <p>Track all orders and admin notifications.</p>
+                                    <span className="action-link">View orders <ArrowRight size={14} /></span>
+                                </Link>
+                            </div>
+
                             <div className="stats-grid">
                                 <div className="stat-card dashboard-surface">
                                     <h3>Total Orders</h3>
@@ -486,3 +506,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
